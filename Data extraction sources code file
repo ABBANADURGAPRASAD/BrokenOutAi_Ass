@@ -1,0 +1,136 @@
+import os
+import streamlit as st
+import pandas as pd
+from googleapiclient.discovery import build
+from google.oauth2.service_account import Credentials
+from serpapi import GoogleSearch
+from langchain import PromptTemplate, OpenAI
+
+# Set the SerpAPI key directly in the script
+SERPAPI_KEY = "d9e3733XXXXXXXXXXXXXXXXXXXXX20a0"
+
+# Function to read data from Google Sheets
+def read_google_sheet(sheet_url, service_account_file):
+    try:
+        creds = Credentials.from_service_account_file(service_account_file)
+        service = build('sheets', 'v4', credentials=creds)
+
+        # Extract Sheet ID from URL
+        sheet_id = sheet_url.split("/d/")[1].split("/")[0]
+        range_name = 'Sheet1!A1:Z100'  # Adjust the range as needed
+
+        sheet = service.spreadsheets()
+        result = sheet.values().get(spreadsheetId=sheet_id, range=range_name).execute()
+        values = result.get('values', [])
+
+        if not values:
+            st.warning("The Google Sheet is empty or the range is invalid.")
+            return pd.DataFrame()
+
+        return pd.DataFrame(values[1:], columns=values[0])
+    except Exception as e:
+        st.error(f"Error reading Google Sheet: {e}")
+        return pd.DataFrame()
+
+# Function to search the web using SerpAPI
+def search_web(entity, prompt):
+    if not SERPAPI_KEY:
+        st.error("SerpAPI key not found. Please set it in the script.")
+        return []
+
+    try:
+        query = f"{entity} {prompt}"
+        params = {
+            "engine": "google",
+            "q": query,
+            "api_key": SERPAPI_KEY,
+        }
+        search = GoogleSearch(params)
+        results = search.get_dict()
+        return results.get('organic_results', [])
+    except Exception as e:
+        st.error(f"Error with SerpAPI search: {e}")
+        return []
+
+# Function to extract information using an LLM
+def extract_info(search_results, prompt, llm_model):
+    try:
+        # Create a prompt template
+        prompt_template = PromptTemplate(
+            template="Extract the following information from the given text: {prompt}\n\nText: {text}",
+            input_variables=["prompt", "text"]
+        )
+
+        # Create an OpenAI LLM instance
+        llm = OpenAI()
+
+        # Process each search result
+        extracted_info = []
+        for result in search_results:
+            llm_input = prompt_template.format(
+                prompt=prompt,
+                text=result['title'] + ' ' + result.get('snippet', '')
+            )
+            response = llm(llm_input)
+            extracted_info.append(response)
+
+        return extracted_info
+    except Exception as e:
+        st.error(f"Error extracting information: {e}")
+        return []
+
+def main():
+    st.title("AI Agent for Data Extraction")
+
+    # File upload or Google Sheets connection
+    uploaded_file = st.file_uploader("Upload a CSV file")
+    sheet_url = st.text_input("Enter Google Sheet URL")
+    service_account_file = st.text_input(
+        "Enter the path to your service account JSON file",
+        value="your_service_account.json"
+    )
+
+    if uploaded_file is not None:
+        try:
+            df = pd.read_csv(uploaded_file)
+        except Exception as e:
+            st.error(f"Error reading the uploaded CSV file: {e}")
+            return
+    elif sheet_url and service_account_file:
+        df = read_google_sheet(sheet_url, service_account_file)
+    else:
+        st.warning("Please upload a CSV file or enter a Google Sheet URL and Service Account File.")
+        return
+
+    # Ensure dataframe is not empty
+    if not df.empty:
+        main_column = st.selectbox("Select the main column", df.columns)
+        # Input custom prompt
+        prompt = st.text_input("Enter your custom prompt (e.g., 'Get me the email address of {company}')")
+
+        if st.button("Process"):
+            results = []
+            for entity in df[main_column]:
+                search_results = search_web(entity, prompt)
+                extracted_info = extract_info(search_results, prompt, "text-davinci-003")  # Replace with desired LLM model
+                results.append((entity, extracted_info))
+
+            # Convert results to DataFrame
+            result_df = pd.DataFrame(results, columns=[main_column, "Extracted Information"])
+            st.dataframe(result_df)
+
+            # Option to download results
+            st.download_button(
+                "Download Results",
+                result_df.to_csv(index=False),
+                file_name="results.csv",
+                mime="text/csv"
+            )
+    else:
+        st.error("No data available to process.")
+
+if __name__ == "__main__":
+    main()
+
+#To run the file use this commend 
+#python -m streamlit run Ai_project.py
