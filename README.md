@@ -1,7 +1,7 @@
 **AI Agent Dashboard
 Project Overview**
 
-    The AI Agent Dashboard is a user-friendly application that enables users to extract valuable information from datasets and perform web searches to retrieve and process       specific details for each entity in a given column. The app integrates with Google Sheets, SerpAPI, and OpenAI to automate and streamline the extraction and processing       of data.
+The AI Agent Dashboard is a user-friendly application that enables users to extract valuable information from datasets and perform web searches to retrieve and process       specific details for each entity in a given column. The app integrates with Google Sheets, SerpAPI, and OpenAI to automate and streamline the extraction and processing of data.
     
     This project was developed as part of the BreakoutAI Assessment, showcasing skills in machine learning, API integration, and prompt engineering.
 
@@ -41,15 +41,15 @@ Install the required Python libraries:**
     Setup Instructions
 **1. Clone the Repository**
 
-**git clone https://github.com/your-username/ai-agent-dashboard.git
+**git clone https://github.com/ABBANADURGAPRASAD/BrokenOutAi_Ass
 cd ai-agent-dashboard**
 
 
 **2. Configure Environment Variables
 Create a .env file in the project directory to store API keys securely:**
 
-"**OPENAI_API_KEY=your_openai_api_key
-SERPAPI_API_KEY=your_serpapi_api_key**"
+                "**OPENAI_API_KEY=your_openai_api_key
+                SERPAPI_API_KEY=your_serpapi_api_key**"
 
 
 **3. Run the Application
@@ -75,7 +75,7 @@ Start the Streamlit app using:**
 **Advanced Features**
 **Google Sheets Output:**
     Automatically write extracted data back to the connected Google Sheet.
-**Batch Processing:**    Handle large datasets in smaller batches to avoid API rate limits.
+**Batch Processing:** Handle large datasets in smaller batches to avoid API rate limits.
 
 
 Loom Video Walkthrough
